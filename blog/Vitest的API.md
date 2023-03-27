@@ -129,8 +129,187 @@ it("toThrow", () => {
 
 了解生命周期从开始构建（setup）到拆卸载（teardown）的过程中，各个钩子的执行时机。
 
-```javascript
+### 执行时机
 
+直接看如何代码，和执行结果
+
+```javascript
+import { beforeAll, beforeEach, afterAll, afterEach, test } from "vitest";
+test("first", () => {
+  console.log("first");
+});
+test("second", () => {
+  console.log("second");
+});
+beforeAll(() => {
+  console.log("beforeAll");
+});
+beforeEach(() => {
+  console.log("beforeEach");
+});
+afterAll(() => {
+  console.log("afterAll");
+});
+afterEach(() => {
+  console.log("afterEach");
+});
+
+// 打印顺序如下
+// beforeAll
+
+// stdout | tests/todo.spec.js > first
+// beforeEach
+// first
+// afterEach
+
+// stdout | tests/todo.spec.js > second
+// beforeEach
+// second
+// afterEach
+
+// stdout | unknown test
+// afterAll
 ```
 
+可以看到每一个测试都要经历的是: `beforeEach -> test -> afterEach 这个小循环`，顺序是根据代码书写的顺便来的，他们会被执行多次。然后是 `beforeAll` 和 `afterAll`，在整个大循环的最前面和最后面，都是只执行一次
+
+接下来我们增加 `describe` 并在里面添加 beforeEach 和 afterEach，再来看看整个过程
+
+```javascript
+import {
+  beforeAll,
+  beforeEach,
+  afterAll,
+  afterEach,
+  test,
+  describe,
+} from "vitest";
+
+beforeAll(() => {
+  console.log("beforeAll");
+});
+beforeEach(() => {
+  console.log("beforeEach");
+});
+test("first", () => {
+  console.log("first");
+});
+test("second", () => {
+  console.log("second");
+});
+describe("add", () => {
+  test("describe first", () => {
+    console.log("describe first");
+  });
+  test("describe second", () => {
+    console.log("describe second");
+  });
+  beforeEach(() => {
+    console.log("describe beforeEach");
+  });
+  afterEach(() => {
+    console.log("describe afterEach");
+  });
+});
+
+afterEach(() => {
+  console.log("afterEach");
+});
+afterAll(() => {
+  console.log("afterAll");
+});
+
+// 打印顺序如下
+// stdout | tests/todo.spec.js > first
+// beforeEach
+// first
+// afterEach
+
+// stdout | tests/todo.spec.js > second
+// beforeEach
+// second
+// afterEach
+
+// stdout | tests/todo.spec.js > add > describe first
+// beforeEach
+// describe beforeEach
+// describe first
+// describe afterEach
+// afterEach
+
+// stdout | tests/todo.spec.js > add > describe second
+// beforeEach
+// describe beforeEach
+// describe second
+// describe afterEach
+// afterEach
+
+// stdout | unknown test
+// beforeAll
+// afterAll
+```
+
+可以看到在 `describe` 内部执行的 test，依然会执行一遍外部的 `beforeEach` 和 `afterEach`，再执行内部的 `beforeEach` 和 `afterEach`。所有的过程可以总结为下图
+![vitest的API执行顺序](https://lib.sixtyden.com/vitest%E7%9A%84API%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F.jpg)
+
+顺便提一下，`beforeEach` 和 `beforeAll` 可以返回一个函数来代替 `afterEach` 和 `afterAll`，这种设计跟 react 的 useEffect 是一样的。这样代码更加连贯，更加清晰，也更好定位维护。
+
+```javascript
+beforeAll(() => {
+  console.log("beforeAll");
+  // afterAll
+  return () => {
+    console.log("afterAll");
+  };
+});
+beforeEach(() => {
+  console.log("beforeEach");
+  // beforeAll
+  return () => {
+    console.log("beforeAll");
+  };
+});
+```
+
+### 使用时机
+
+#### beforeAll
+
+只执行一次，在最前面执行。当需要执行的测试有依赖要在最开始执行，并且只执行一次的时候使用该钩子。比如数据库的连接和创建，不需要每次测试一次都连接断开反复执行；再比如临时文件，也是只需要生成一次。
+
+#### afterAll
+
+只执行一次，在最后面执行。类比上面，数据库的断开操作，以及临时文件的删除操作都可以在这个钩子中执行。
+
+#### beforeEach
+
+每一个 test 都会执行一次，在测试用例执行之前执行。如果某个测试需要依赖一些前置数据，并且下次测试需要重新生成的需求可以在这个钩子中完成。比如初始化 pinia 和 store
+
+#### afterEach
+
+每一个 test 都会执行一次，在测试用例执行之后执行。如果当前测试中有些数据需要被清理或者卸载可以在这个钩子中完成。比如一些 reset 操作。
+
 ## filter
+
+过滤器主要是方便平常进行可控制的测试耽搁或者多个测试，打开 vue 的源码，执行一次全量测试需要不少时间，不可能每次开发过程中都测试全量，所以一般测试框架都会有过滤器。
+
+```javascript
+describe("add", () => {
+  // 先只测试添加操作
+  it.only("should add a item", () => {
+    todo.add("吃饭");
+    expect(todo.get()).toEqual(["吃饭"]);
+  });
+
+  // 先跳过删除操作
+  it.skip("should delete a item", () => {
+    todo.remove();
+    expect(todo.get()).toEqual([]);
+  });
+
+  // 可以用于功能点占位，开发之前列举出来，写完一个完善一个测试
+  it.todo("edit");
+});
+```
+
+当然除了在一个套间里面有 filter，你也可以每次只测试一个文件 `yarn test tests/todo.spec.js `。
