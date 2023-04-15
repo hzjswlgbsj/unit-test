@@ -6,6 +6,7 @@ test("first test", () => {
 
 it("first it", () => {
   console.log("first");
+  expect(2).toBe(2);
 });
 
 run();
