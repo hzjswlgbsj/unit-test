@@ -21,6 +21,11 @@ export const it = test;
 export function run() {
   const suit = onlys.length > 0 ? onlys : tests;
   for (const test of suit) {
+    try {
+      console.log(`ok: ${test.name}`);
+    } catch (error) {
+      console.log(`error: ${test.name}`);
+    }
     test.callback();
   }
 }
