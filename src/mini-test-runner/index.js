@@ -8,10 +8,12 @@
 
 const tests = [];
 const onlys = [];
+const beforeAlls = [];
 
 test.only = (name, callback) => {
   tests.push({ name, callback });
 };
+
 export function test(name, callback) {
   onlys.push({ name, callback });
 }
@@ -19,6 +21,10 @@ export function test(name, callback) {
 export const it = test;
 
 export function run() {
+  for (const beforeAllCallBack of beforeAlls) {
+    beforeAllCallBack();
+  }
+
   const suit = onlys.length > 0 ? onlys : tests;
   for (const test of suit) {
     try {
@@ -40,4 +46,8 @@ export function expect(actual) {
       }
     },
   };
+}
+
+export function beforAll(callback) {
+  beforeAlls.push(callback);
 }
