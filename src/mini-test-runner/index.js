@@ -9,6 +9,9 @@
 const tests = [];
 const onlys = [];
 const beforeAlls = [];
+const beforeEachs = [];
+const afterAlls = [];
+const afterEachs = [];
 
 test.only = (name, callback) => {
   tests.push({ name, callback });
@@ -21,18 +24,35 @@ export function test(name, callback) {
 export const it = test;
 
 export function run() {
+  // beforeAll hook
   for (const beforeAllCallBack of beforeAlls) {
     beforeAllCallBack();
   }
 
   const suit = onlys.length > 0 ? onlys : tests;
   for (const test of suit) {
+    // beforeEach hook
+    for (const beforeEachCallBack of beforeEachs) {
+      beforeEachCallBack();
+    }
     try {
+      test.callback();
       console.log(`ok: ${test.name}`);
     } catch (error) {
       console.log(`error: ${test.name}`);
     }
+
+    // afterEach hook
+    for (const afterEachCallBack of afterEachs) {
+      afterEachCallBack();
+    }
+
     test.callback();
+  }
+
+  // afterAll hook
+  for (const afterAllCallBack of afterAlls) {
+    afterAllCallBack();
   }
 }
 
@@ -48,6 +68,15 @@ export function expect(actual) {
   };
 }
 
-export function beforAll(callback) {
+export function beforeAll(callback) {
   beforeAlls.push(callback);
+}
+export function beforeEach(callback) {
+  beforeEachs.push(callback);
+}
+export function afterAll(callback) {
+  afterAlls.push(callback);
+}
+export function afterEach(callback) {
+  afterEachs.push(callback);
 }

@@ -1,7 +1,28 @@
-import { test, run, it, expect, beforAll } from "./index";
+import {
+  test,
+  run,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  afterEach,
+} from "./index";
 
-beforAll(() => {
+beforeAll(() => {
   console.log("before all");
+});
+
+beforeEach(() => {
+  console.log("before each");
+});
+
+afterAll(() => {
+  console.log("after all");
+});
+
+afterEach(() => {
+  console.log("after each");
 });
 
 test("first test", () => {
