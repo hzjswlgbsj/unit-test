@@ -7,6 +7,7 @@ import {
   beforeEach,
   afterAll,
   afterEach,
+  describe,
 } from "./index";
 
 beforeAll(() => {
@@ -32,6 +33,13 @@ test("first test", () => {
 it("first it", () => {
   console.log("first");
   expect(2).toBe(2);
+});
+
+describe("sub", () => {
+  test("sub:first test case", () => {
+    console.log("first");
+    expect(2).toBe(2);
+  });
 });
 
 run();
