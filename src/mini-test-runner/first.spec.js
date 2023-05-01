@@ -8,7 +8,7 @@ import {
   afterAll,
   afterEach,
   describe,
-} from "./index";
+} from "./core";
 
 beforeAll(() => {
   console.log("before all");

@@ -1,90 +1,37 @@
-// test it
-// expect toBe
-// test .only
-// 提示是否通过/报错
-// beforeAll beforeEach afterAl afterEach
-// describe
-// 自动执行所有的测试脚本 *.spec.js
+// 模拟实现自动执行所有的测试脚本
+// 1.获取所有的测试脚本 -> *.spec.js
+// 2.执行所有脚本
 
-const tests = [];
-const onlys = [];
-const beforeAlls = [];
-const beforeEachs = [];
-const afterAlls = [];
-const afterEachs = [];
+import { glob } from "glob";
+import fs from "fs/promises";
+import { build } from "esbuild";
 
-test.only = (name, callback) => {
-  tests.push({ name, callback });
-};
-
-export function test(name, callback) {
-  onlys.push({ name, callback });
+const files = glob.sync("*.spec.js");
+console.log("所有的测试文件", files);
+for (const file of files) {
+  const fileContent = await fs.readFile(file, "utf-8");
+  console.log("file content", fileContent);
+  // eslint-disable-next-line no-new-func
+  // new Function(fileContent)();
+  // 这里还不能执行，因为将 import 语法放到函数中肯定是无法运行的
+  // 可以想办法将测试文件和测试框架代码打包到一起
+  // 可以使用babel或者esbuild打包
+  await runModule(fileContent);
 }
 
-export const it = test;
-
-export function expect(actual) {
-  return {
-    toBe(expected) {
-      if (expected === actual) {
-        console.log("ok");
-      } else {
-        throw new Error(`fail actual:${actual} expected:${expected}`);
-      }
+async function runModule(fileContent) {
+  const res = await build({
+    stdin: {
+      contents: fileContent,
+      resolveDir: process.cwd(),
     },
-  };
-}
+    write: false, // 不输出成文件
+    bundle: true, // 将多个文件打包到一起
+    target: "esnext",
+  });
 
-export function beforeAll(callback) {
-  beforeAlls.push(callback);
-}
-
-export function beforeEach(callback) {
-  beforeEachs.push(callback);
-}
-
-export function afterAll(callback) {
-  afterAlls.push(callback);
-}
-
-export function afterEach(callback) {
-  afterEachs.push(callback);
-}
-
-// 只是简单实现，没有手机所有层级的测试用例
-export function describe(name, callback) {
-  callback();
-}
-
-export function run() {
-  // beforeAll hook
-  for (const beforeAllCallBack of beforeAlls) {
-    beforeAllCallBack();
-  }
-
-  const suit = onlys.length > 0 ? onlys : tests;
-  for (const test of suit) {
-    // beforeEach hook
-    for (const beforeEachCallBack of beforeEachs) {
-      beforeEachCallBack();
-    }
-    try {
-      test.callback();
-      console.log(`ok: ${test.name}`);
-    } catch (error) {
-      console.log(`error: ${test.name}`);
-    }
-
-    // afterEach hook
-    for (const afterEachCallBack of afterEachs) {
-      afterEachCallBack();
-    }
-
-    test.callback();
-  }
-
-  // afterAll hook
-  for (const afterAllCallBack of afterAlls) {
-    afterAllCallBack();
-  }
+  console.log(res);
+  console.log(res.outputFiles[0].text);
+  // eslint-disable-next-line no-new-func
+  new Function(res.outputFiles[0].text)();
 }
