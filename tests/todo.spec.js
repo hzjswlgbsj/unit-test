@@ -1,4 +1,4 @@
-import Todo from "../src/components/todi-list/Todo";
+import Todo from "../src/components/todo-list/Todo";
 import {
   expect,
   describe,
